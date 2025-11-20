@@ -9,11 +9,14 @@ This crate is a fork of
 itself a fork of [`atomic-wait`](https://github.com/m-ou-se/atomic-wait). The
 changes inherited and kept from `wait_on_address` are:
 
-- Support for waiting with a timeout
-- Support for `wasm32` on nightly using `std::arch`
-- Polyfill for all other platforms
+- Support for waiting with a timeout.
+- Support for `wasm32` on nightly using `std::arch`.
+- Polyfill for all other platforms.
 
-The main 
+The API has been heavily modified; the wait APIs return the result of the wait
+to the extent that the OS APIs provide it, while the notify APIs report how
+many threads were woken up, again to the extent that the OS APIs provide such
+information.
 
 Natively-supported platforms:
 
