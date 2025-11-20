@@ -76,6 +76,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                 return i;
             }
         }
+        count
     }
 }
 
@@ -150,5 +151,6 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                 return i;
             }
         }
+        count
     }
 }
