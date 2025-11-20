@@ -32,6 +32,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
             }
         };
         if result >= 0 {
+            eprintln!("{result:?}");
             Ok(())
         } else {
             let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);

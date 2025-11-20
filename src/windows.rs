@@ -19,7 +19,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
         let result = unsafe {
             WaitOnAddress(
                 self.addr() as *const core::ffi::c_void,
-                &value as *const core::ffi::c_void,
+                &value as *const u32 as *const core::ffi::c_void,
                 size_of::<Self>(),
                 timeout
                     .map(|x| {
@@ -32,7 +32,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                     .unwrap_or(INFINITE),
             )
         };
-        if result {
+        if result == 1 {
             Ok(())
         } else {
             let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
@@ -68,7 +68,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
         let result = unsafe {
             WaitOnAddress(
                 self.addr() as *const core::ffi::c_void,
-                &value as *const core::ffi::c_void,
+                &value as *const u32 as *const core::ffi::c_void,
                 size_of::<Self>(),
                 timeout
                     .map(|x| x.as_millis().min(u32::MAX as u128 - 1) as u32)
