@@ -63,19 +63,18 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        let result = unsafe {
-            libc::os_sync_wake_by_address_any(
-                self.addr() as *mut libc::c_void,
-                size_of::<Self::AtomicInner>(),
-                libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
-            )
-        };
-        if result == 0 {
-            // At least one thread was woken up; assume count.
-            count
-        } else {
-            // No threads were woken up.
-            0
+        for i in 0..count {
+            let result = unsafe {
+                libc::os_sync_wake_by_address_any(
+                    self.addr() as *mut libc::c_void,
+                    size_of::<Self::AtomicInner>(),
+                    libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
+                )
+            };
+            if result != 0 {
+                // No threads were woken up.
+                return i;
+            }
         }
     }
 }
@@ -138,19 +137,18 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        let result = unsafe {
-            libc::os_sync_wake_by_address_any(
-                self.addr() as *mut libc::c_void,
-                size_of::<Self::AtomicInner>(),
-                libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
-            )
-        };
-        if result == 0 {
-            // At least one thread was woken up; assume count.
-            count
-        } else {
-            // No threads were woken up.
-            0
+        for i in 0..count {
+            let result = unsafe {
+                libc::os_sync_wake_by_address_any(
+                    self.addr() as *mut libc::c_void,
+                    size_of::<Self::AtomicInner>(),
+                    libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
+                )
+            };
+            if result != 0 {
+                // No threads were woken up.
+                return i;
+            }
         }
     }
 }
