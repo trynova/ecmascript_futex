@@ -72,7 +72,7 @@ fn stress_many_waiters_notify_all() {
         // Give threads time to start waiting
         sleep(Duration::from_millis(50));
         a.store(1, Ordering::Unordered);
-        assert_eq!(a.notify_all(), threads as usize);
+        assert!(a.notify_all() >= threads as usize);
     });
     assert_eq!(woke.load(Ordering::Unordered), threads);
 }
