@@ -1,5 +1,4 @@
 use core::time::Duration;
-use std::usize;
 
 use ecmascript_atomics::Racy;
 
