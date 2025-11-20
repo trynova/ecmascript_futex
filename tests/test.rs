@@ -9,7 +9,7 @@ use std::{
 fn wake_nothing() {
     let a = RacyBox::new(0u32).unwrap();
     let a = a.as_slice().get(0).unwrap();
-    assert!(a.notify_many(1) >= 1);
+    assert!(a.notify_many(1) <= 1);
     a.notify_all();
 }
 
