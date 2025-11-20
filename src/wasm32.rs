@@ -2,7 +2,7 @@ use std::{hint::spin_loop, time::Duration};
 
 use ecmascript_atomics::{Ordering, Racy};
 
-use crate::private::AtomicWaitImpl;
+use crate::{FutexError, private::ECMAScriptAtomicWaitImpl};
 
 /// Whether this thread is allowed to block and use synchronization primitives.
 #[inline(always)]

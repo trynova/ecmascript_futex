@@ -2,7 +2,7 @@ use core::time::Duration;
 
 use ecmascript_atomics::{Ordering, Racy};
 
-use crate::private::AtomicWaitImpl;
+use crate::{FutexError, private::ECMAScriptAtomicWaitImpl};
 
 impl AtomicWaitImpl for Racy<'_, u32> {
     type AtomicInner = u32;
