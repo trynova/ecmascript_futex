@@ -68,7 +68,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
         let result = unsafe {
             WaitOnAddress(
                 self.addr() as *const core::ffi::c_void,
-                &value as *const u32 as *const core::ffi::c_void,
+                &value as *const u64 as *const core::ffi::c_void,
                 size_of::<Self>(),
                 timeout
                     .map(|x| x.as_millis().min(u32::MAX as u128 - 1) as u32)
