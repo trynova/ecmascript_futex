@@ -18,7 +18,11 @@ fn wait_unexpected() {
     let t = Instant::now();
     let a = RacyBox::new(0u32).unwrap();
     let a = a.as_slice().get(0).unwrap();
+    // Note: Windows doesn't report early-exits.
+    #[cfg(not(windows))]
     assert_eq!(a.wait(1), Err(FutexError::NotEqual));
+    #[cfg(windows)]
+    assert_eq!(a.wait(1), Ok(()));
     assert!(t.elapsed().as_millis() < 100);
 }
 
