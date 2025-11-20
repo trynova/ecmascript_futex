@@ -15,7 +15,7 @@ fn can_block() -> bool {
 }
 
 #[cfg(not(nightly))]
-impl AtomicWaitImpl for Racy<'_, u32> {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     type AtomicInner = u32;
 
     fn wait_timeout(
@@ -44,7 +44,7 @@ impl AtomicWaitImpl for Racy<'_, u32> {
 }
 
 #[cfg(not(nightly))]
-impl AtomicWaitImpl for Racy<'_, u64> {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     type AtomicInner = u64;
 
     fn wait_timeout(
@@ -73,7 +73,7 @@ impl AtomicWaitImpl for Racy<'_, u64> {
 }
 
 #[cfg(nightly)]
-impl AtomicWaitImpl for Racy<'_, u32> {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     type AtomicInner = u32;
 
     fn wait_timeout(
@@ -120,7 +120,7 @@ impl AtomicWaitImpl for Racy<'_, u32> {
 }
 
 #[cfg(nightly)]
-impl AtomicWaitImpl for Racy<'_, u64> {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     type AtomicInner = u64;
 
     fn wait_timeout(
