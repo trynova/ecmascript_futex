@@ -20,7 +20,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                     size_of::<Self>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
                     libc::CLOCK_MONOTONIC,
-                    time.as_nanos().min(u64::MAX as u128) as u64,
+                    (time.as_nanos().min(u64::MAX as u128) as u64).max(1),
                 )
             } else {
                 libc::os_sync_wait_on_address(
@@ -96,7 +96,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                     size_of::<Self>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
                     libc::CLOCK_MONOTONIC,
-                    time.as_nanos().min(u64::MAX as u128) as u64,
+                    (time.as_nanos().min(u64::MAX as u128) as u64).max(1),
                 )
             } else {
                 libc::os_sync_wait_on_address(
