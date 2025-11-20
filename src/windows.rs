@@ -20,7 +20,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
             WaitOnAddress(
                 self.addr() as *const core::ffi::c_void,
                 &value as *const u32 as *const core::ffi::c_void,
-                size_of::<Self>(),
+                size_of::<Self::AtomicInner>(),
                 timeout
                     .map(|x| {
                         // Clamp to a finite u32 millisecond timeout. INFINITE (0xFFFFFFFF)
@@ -70,7 +70,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
             WaitOnAddress(
                 self.addr() as *const core::ffi::c_void,
                 &value as *const u64 as *const core::ffi::c_void,
-                size_of::<Self>(),
+                size_of::<Self::AtomicInner>(),
                 timeout
                     .map(|x| x.as_millis().min(u32::MAX as u128 - 1) as u32)
                     .unwrap_or(INFINITE),

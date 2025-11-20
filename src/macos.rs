@@ -17,16 +17,16 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                 libc::os_sync_wait_on_address_with_timeout(
                     self.addr() as *mut libc::c_void,
                     value as u64,
-                    size_of::<Self>(),
+                    size_of::<Self::AtomicInner>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
-                    libc::CLOCK_MONOTONIC,
+                    libc::OS_CLOCK_MACH_ABSOLUTE_TIME,
                     (time.as_nanos().min(u64::MAX as u128) as u64).max(1),
                 )
             } else {
                 libc::os_sync_wait_on_address(
                     self.addr() as *mut libc::c_void,
                     value as u64,
-                    size_of::<Self>(),
+                    size_of::<Self::AtomicInner>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
                 )
             }
@@ -49,7 +49,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
         let result = unsafe {
             libc::os_sync_wake_by_address_all(
                 self.addr() as *mut libc::c_void,
-                size_of::<Self>(),
+                size_of::<Self::AtomicInner>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
             )
         };
@@ -66,7 +66,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
         let result = unsafe {
             libc::os_sync_wake_by_address_any(
                 self.addr() as *mut libc::c_void,
-                size_of::<Self>(),
+                size_of::<Self::AtomicInner>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
             )
         };
@@ -93,16 +93,16 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                 libc::os_sync_wait_on_address_with_timeout(
                     self.addr() as *mut libc::c_void,
                     value,
-                    size_of::<Self>(),
+                    size_of::<Self::AtomicInner>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
-                    libc::CLOCK_MONOTONIC,
+                    libc::OS_CLOCK_MACH_ABSOLUTE_TIME,
                     (time.as_nanos().min(u64::MAX as u128) as u64).max(1),
                 )
             } else {
                 libc::os_sync_wait_on_address(
                     self.addr() as *mut libc::c_void,
                     value,
-                    size_of::<Self>(),
+                    size_of::<Self::AtomicInner>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
                 )
             }
@@ -124,7 +124,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
         let result = unsafe {
             libc::os_sync_wake_by_address_all(
                 self.addr() as *mut libc::c_void,
-                size_of::<Self>(),
+                size_of::<Self::AtomicInner>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
             )
         };
@@ -141,7 +141,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
         let result = unsafe {
             libc::os_sync_wake_by_address_any(
                 self.addr() as *mut libc::c_void,
-                size_of::<Self>(),
+                size_of::<Self::AtomicInner>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
             )
         };
