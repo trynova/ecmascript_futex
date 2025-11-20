@@ -68,7 +68,7 @@ pub trait ECMAScriptAtomicWait: private::ECMAScriptAtomicWaitImpl {
     ///
     /// This function might also return spuriously,
     /// without a corresponding wake operation.
-    fn wait(&self, value: Self::ECMAScriptAtomicInner) -> Result<(), FutexError> {
+    fn wait(&self, value: Self::AtomicInner) -> Result<(), FutexError> {
         private::ECMAScriptAtomicWaitImpl::wait_timeout(self, value, None)
     }
 
@@ -77,11 +77,7 @@ pub trait ECMAScriptAtomicWait: private::ECMAScriptAtomicWaitImpl {
     ///
     /// This function might also return spuriously,
     /// without a corresponding wake operation.
-    fn wait_timeout(
-        &self,
-        value: Self::ECMAScriptAtomicInner,
-        timeout: Duration,
-    ) -> Result<(), FutexError> {
+    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Duration) -> Result<(), FutexError> {
         private::ECMAScriptAtomicWaitImpl::wait_timeout(self, value, Some(timeout))
     }
 
@@ -108,7 +104,7 @@ mod private {
     /// A trait that cannot be implemented by other crates.
     pub trait ECMAScriptAtomicWaitImpl {
         /// The underlying integer type for the atomic.
-        type ECMAScriptAtomicInner;
+        type AtomicInner;
 
         /// Wake all threads that are waiting on this atomic.
         fn notify_all(&self) -> usize;
@@ -122,7 +118,7 @@ mod private {
         /// without a corresponding wake operation.
         fn wait_timeout(
             &self,
-            value: Self::ECMAScriptAtomicInner,
+            value: Self::AtomicInner,
             timeout: Option<Duration>,
         ) -> Result<(), FutexError>;
     }

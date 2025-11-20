@@ -28,18 +28,19 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                 self.addr(),
                 || self.load(Ordering::SeqCst) == value,
                 timeout,
-            );
+            )
         } else {
             spin_loop();
+            Ok(())
         }
     }
 
     fn notify_all(&self) -> usize {
-        crate::condvar_table::notify_all(self.addr());
+        crate::condvar_table::notify_all(self.addr())
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        crate::condvar_table::notify_many(self.addr(), count);
+        crate::condvar_table::notify_many(self.addr(), count)
     }
 }
 
@@ -57,18 +58,19 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                 self.addr(),
                 || self.load(Ordering::SeqCst) == value,
                 timeout,
-            );
+            )
         } else {
             spin_loop();
+            Ok(())
         }
     }
 
     fn notify_all(&self) -> usize {
-        crate::condvar_table::notify_all(self.addr());
+        crate::condvar_table::notify_all(self.addr())
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        crate::condvar_table::notify_many(self.addr(), count);
+        crate::condvar_table::notify_many(self.addr(), count)
     }
 }
 
@@ -107,15 +109,12 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     }
 
     fn notify_all(&self) -> usize {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self.addr(), u32::MAX);
-        };
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), u32::MAX) as usize }
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self.addr(), 1);
-        };
+        let count = u32::try_from(count).unwrap_or(u32::MAX);
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), count) as usize }
     }
 }
 
@@ -154,14 +153,11 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     }
 
     fn notify_all(&self) -> usize {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self.addr(), u32::MAX);
-        };
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), u32::MAX) as usize }
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self.addr(), 1);
-        };
+        let count = u32::try_from(count).unwrap_or(u32::MAX);
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), count) as usize }
     }
 }

@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use ecmascript_atomics::{Ordering, Racy};
+use ecmascript_atomics::Racy;
 
 use crate::{FutexError, private::ECMAScriptAtomicWaitImpl};
 
@@ -12,7 +12,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
         value: Self::AtomicInner,
         timeout: Option<Duration>,
     ) -> Result<(), FutexError> {
-        unsafe {
+        let result = unsafe {
             if let Some(time) = timeout {
                 let wait_timespec = libc::_umtx_time {
                     _clockid: libc::CLOCK_MONOTONIC as u32,
@@ -29,7 +29,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                     value as u64,
                     size_of::<libc::_umtx_time>() as *mut _,
                     &wait_timespec as *const _ as *mut _,
-                );
+                )
             } else {
                 libc::_umtx_op(
                     self.addr(),
@@ -37,33 +37,63 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
                     value as u64,
                     std::ptr::null_mut(),
                     std::ptr::null_mut(),
-                );
+                )
             }
         };
+        if result >= 0 {
+            Ok(())
+        } else {
+            let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+            if errno == libc::EAGAIN {
+                Err(FutexError::NotEqual)
+            } else if errno == libc::ETIMEDOUT {
+                Err(FutexError::Timeout)
+            } else if errno == libc::EINTR {
+                // We consider spurious interrupts to still be valid
+                // wakeups.
+                Ok(())
+            } else {
+                Err(FutexError::Unknown)
+            }
+        }
     }
 
     fn notify_all(&self) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::_umtx_op(
                 self.addr(),
                 libc::UMTX_OP_WAKE_PRIVATE,
                 i32::MAX as libc::c_ulong,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-            );
+            )
         };
+        if result > 0 {
+            result as usize
+        } else if result == 0 {
+            usize::MAX
+        } else {
+            0
+        }
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::_umtx_op(
                 self.addr(),
                 libc::UMTX_OP_WAKE_PRIVATE,
                 1 as libc::c_ulong,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-            );
+            )
         };
+        if result > 0 {
+            (result as usize).min(count)
+        } else if result == 0 {
+            count
+        } else {
+            0
+        }
     }
 }
 
@@ -75,7 +105,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
         value: Self::AtomicInner,
         timeout: Option<Duration>,
     ) -> Result<(), FutexError> {
-        unsafe {
+        let result = unsafe {
             if let Some(time) = timeout {
                 let wait_timespec = libc::_umtx_time {
                     _clockid: libc::CLOCK_MONOTONIC as u32,
@@ -92,7 +122,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                     value,
                     size_of::<libc::_umtx_time>() as *mut _,
                     &wait_timespec as *const _ as *mut _,
-                );
+                )
             } else {
                 libc::_umtx_op(
                     self.addr(),
@@ -100,32 +130,62 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                     value,
                     std::ptr::null_mut(),
                     std::ptr::null_mut(),
-                );
+                )
             }
         };
+        if result >= 0 {
+            Ok(())
+        } else {
+            let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+            if errno == libc::EAGAIN {
+                Err(FutexError::NotEqual)
+            } else if errno == libc::ETIMEDOUT {
+                Err(FutexError::Timeout)
+            } else if errno == libc::EINTR {
+                // We consider spurious interrupts to still be valid
+                // wakeups.
+                Ok(())
+            } else {
+                Err(FutexError::Unknown)
+            }
+        }
     }
 
     fn notify_all(&self) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::_umtx_op(
                 self.addr(),
                 libc::UMTX_OP_WAKE_PRIVATE,
                 i32::MAX as libc::c_ulong,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-            );
+            )
         };
+        if result > 0 {
+            result as usize
+        } else if result == 0 {
+            usize::MAX
+        } else {
+            0
+        }
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::_umtx_op(
                 self.addr(),
                 libc::UMTX_OP_WAKE_PRIVATE,
                 1 as libc::c_ulong,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-            );
+            )
         };
+        if result > 0 {
+            (result as usize).min(count)
+        } else if result == 0 {
+            count
+        } else {
+            0
+        }
     }
 }

@@ -1,6 +1,7 @@
 use core::time::Duration;
+use std::usize;
 
-use ecmascript_atomics::{Ordering, Racy};
+use ecmascript_atomics::Racy;
 
 use crate::{FutexError, private::ECMAScriptAtomicWaitImpl};
 
@@ -44,23 +45,37 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     }
 
     fn notify_all(&self) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::os_sync_wake_by_address_all(
                 self.addr(),
                 size_of::<Self>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
-            );
+            )
         };
+        if result == 0 {
+            // At least one thread was woken up
+            usize::MAX
+        } else {
+            // No threads were woken up.
+            0
+        }
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::os_sync_wake_by_address_any(
                 self.addr(),
                 size_of::<Self>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
-            );
+            )
         };
+        if result == 0 {
+            // At least one thread was woken up; assume count.
+            count
+        } else {
+            // No threads were woken up.
+            0
+        }
     }
 }
 
@@ -72,7 +87,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
         value: Self::AtomicInner,
         timeout: Option<Duration>,
     ) -> Result<(), FutexError> {
-        unsafe {
+        let result = unsafe {
             if let Some(time) = timeout {
                 libc::os_sync_wait_on_address_with_timeout(
                     self.addr(),
@@ -81,35 +96,60 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
                     libc::CLOCK_MONOTONIC,
                     time.as_nanos().min(u64::MAX as u128) as u64,
-                );
+                )
             } else {
                 libc::os_sync_wait_on_address(
                     self.addr(),
                     value,
                     size_of::<Self>(),
                     libc::OS_SYNC_WAIT_ON_ADDRESS_NONE,
-                );
+                )
+            }
+        };
+        if result >= 0 {
+            // Result indicates how many waiters remain.
+            Ok(())
+        } else {
+            let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
+            if errno == libc::ETIMEDOUT {
+                Err(FutexError::Timeout)
+            } else {
+                Err(FutexError::Unknown)
             }
         }
     }
 
     fn notify_all(&self) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::os_sync_wake_by_address_all(
                 self.addr(),
                 size_of::<Self>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
-            );
+            )
         };
+        if result == 0 {
+            // At least one thread was woken up
+            usize::MAX
+        } else {
+            // No threads were woken up.
+            0
+        }
     }
 
     fn notify_many(&self, count: usize) -> usize {
-        unsafe {
+        let result = unsafe {
             libc::os_sync_wake_by_address_any(
                 self.addr(),
                 size_of::<Self>(),
                 libc::OS_SYNC_WAKE_BY_ADDRESS_NONE,
-            );
+            )
         };
+        if result == 0 {
+            // At least one thread was woken up; assume count.
+            count
+        } else {
+            // No threads were woken up.
+            0
+        }
     }
 }

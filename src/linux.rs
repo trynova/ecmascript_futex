@@ -5,11 +5,11 @@ use ecmascript_atomics::{Ordering, Racy};
 use crate::{FutexError, condvar_table, private::ECMAScriptAtomicWaitImpl};
 
 impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
-    type ECMAScriptAtomicInner = u32;
+    type AtomicInner = u32;
 
     fn wait_timeout(
         &self,
-        value: Self::ECMAScriptAtomicInner,
+        value: Self::AtomicInner,
         timeout: Option<Duration>,
     ) -> Result<(), FutexError> {
         unsafe {
@@ -73,11 +73,11 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
 }
 
 impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
-    type ECMAScriptAtomicInner = u64;
+    type AtomicInner = u64;
 
     fn wait_timeout(
         &self,
-        value: Self::ECMAScriptAtomicInner,
+        value: Self::AtomicInner,
         timeout: Option<Duration>,
     ) -> Result<(), FutexError> {
         condvar_table::wait(
