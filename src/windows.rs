@@ -45,13 +45,13 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     }
 
     fn notify_all(&self) -> usize {
-        unsafe { WakeByAddressAll(self.addr()) };
+        unsafe { WakeByAddressAll(self.addr() as *const core::ffi::c_void) };
         usize::MAX
     }
 
     fn notify_many(&self, count: usize) -> usize {
         for _ in 0..count {
-            unsafe { WakeByAddressSingle(self.addr()) };
+            unsafe { WakeByAddressSingle(self.addr() as *const core::ffi::c_void) };
         }
         count
     }
@@ -88,13 +88,13 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     }
 
     fn notify_all(&self) -> usize {
-        unsafe { WakeByAddressAll(self.addr()) };
+        unsafe { WakeByAddressAll(self.addr() as *const core::ffi::c_void) };
         usize::MAX
     }
 
     fn notify_many(&self, count: usize) -> usize {
         for _ in 0..count {
-            unsafe { WakeByAddressSingle(self.addr()) };
+            unsafe { WakeByAddressSingle(self.addr() as *const core::ffi::c_void) };
         }
         count
     }
