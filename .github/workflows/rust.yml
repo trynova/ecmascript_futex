@@ -1,12 +1,19 @@
 name: Rust
 on:
-  push: { branches: "main" }
-  pull_request: { branches: "*" }
+  push: { branches: ["main"] }
+  pull_request: { branches: ["*"] }
 jobs:
   build-and-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04-arm, windows-latest, windows-11-arm, macos-latest]
+        os:
+          [
+            ubuntu-latest,
+            ubuntu-22.04-arm,
+            windows-latest,
+            windows-11-arm,
+            macos-latest,
+          ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -26,4 +33,3 @@ jobs:
         run: cargo build --verbose
       - name: Run tests
         run: cargo nextest run --verbose
-

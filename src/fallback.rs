@@ -1,46 +1,53 @@
-use std::{
-    sync::atomic::{AtomicU32, AtomicU64, Ordering},
-    time::Duration,
-};
+use core::time::Duration;
 
-use crate::{condvar_table, private::AtomicWaitImpl};
+use ecmascript_atomics::{Ordering, Racy};
 
-impl AtomicWaitImpl for AtomicU32 {
+use crate::{FutexError, condvar_table, private::ECMAScriptAtomicWaitImpl};
+
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     type AtomicInner = u32;
 
-    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Option<Duration>) {
+    fn wait_timeout(
+        &self,
+        value: Self::AtomicInner,
+        timeout: Option<Duration>,
+    ) -> Result<(), FutexError> {
         condvar_table::wait(
-            self as *const _ as *const _,
-            || self.load(Ordering::Acquire) == value,
+            self.addr(),
+            || self.load(Ordering::SeqCst) == value,
             timeout,
-        );
+        )
     }
 
-    fn notify_all(&self) {
-        condvar_table::notify_all(self as *const _ as *const _);
+    fn notify_all(&self) -> usize {
+        condvar_table::notify_all(self.addr())
     }
 
-    fn notify_one(&self) {
-        condvar_table::notify_one(self as *const _ as *const _);
+    fn notify_many(&self, count: usize) -> usize {
+        condvar_table::notify_many(self.addr(), count)
     }
 }
 
-impl AtomicWaitImpl for AtomicU64 {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     type AtomicInner = u64;
 
-    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Option<Duration>) {
+    fn wait_timeout(
+        &self,
+        value: Self::AtomicInner,
+        timeout: Option<Duration>,
+    ) -> Result<(), FutexError> {
         condvar_table::wait(
-            self as *const _ as *const _,
-            || self.load(Ordering::Acquire) == value,
+            self.addr(),
+            || self.load(Ordering::SeqCst) == value,
             timeout,
-        );
+        )
     }
 
-    fn notify_all(&self) {
-        condvar_table::notify_all(self as *const _ as *const _);
+    fn notify_all(&self) -> usize {
+        condvar_table::notify_all(self.addr())
     }
 
-    fn notify_one(&self) {
-        condvar_table::notify_one(self as *const _ as *const _);
+    fn notify_many(&self, count: usize) -> usize {
+        condvar_table::notify_many(self.addr(), count)
     }
 }

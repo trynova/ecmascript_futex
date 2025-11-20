@@ -4,6 +4,8 @@ use std::{
     time::Duration,
 };
 
+use crate::FutexError;
+
 /// The number of OS synchronization primitives to use.
 const TABLE_SIZE: usize = 256;
 
@@ -12,9 +14,14 @@ static TABLE: [TableEntry; TABLE_SIZE] = [TableEntry::DEFAULT; TABLE_SIZE];
 
 /// Puts the current thread to sleep if `condition` evaluates to `true`.
 /// The thread will be woken after `timeout` if it is provided.
-pub fn wait(ptr: *const (), condition: impl FnOnce() -> bool, timeout: Option<Duration>) {
+pub fn wait(
+    ptr: *const (),
+    condition: impl Fn() -> bool,
+    timeout: Option<Duration>,
+) -> Result<(), FutexError> {
     let entry = &TABLE[entry_for_ptr(ptr) as usize];
     let mut guard = spin_lock(&entry.mutex);
+    let mut timedout = false;
     if condition() {
         if guard.waiting_count == 0 {
             guard.address = ptr;
@@ -25,42 +32,58 @@ pub fn wait(ptr: *const (), condition: impl FnOnce() -> bool, timeout: Option<Du
         guard.waiting_count += 1;
 
         guard = if let Some(time) = timeout {
-            entry
+            let (guard, result) = entry
                 .condvar
                 .wait_timeout(guard, time)
-                .expect("Failed to lock mutex")
-                .0
+                .expect("Failed to lock mutex");
+            timedout = result.timed_out();
+            guard
         } else {
             entry.condvar.wait(guard).expect("Failed to lock mutex")
         };
 
         guard.waiting_count -= 1;
+
+        if timedout {
+            Err(FutexError::Timeout)
+        } else {
+            Ok(())
+        }
+    } else {
+        Err(FutexError::NotEqual)
     }
 }
 
 /// Wakes all threads waiting on `ptr`.
-pub fn notify_all(ptr: *const ()) {
-    if !ptr.is_null() {
-        let entry = &TABLE[entry_for_ptr(ptr) as usize];
-        let metadata = *spin_lock(&entry.mutex);
-        if 0 < metadata.waiting_count {
-            entry.condvar.notify_all();
-        }
+pub fn notify_all(ptr: *const ()) -> usize {
+    if ptr.is_null() {
+        return 0;
     }
+    let entry = &TABLE[entry_for_ptr(ptr) as usize];
+    let metadata = *spin_lock(&entry.mutex);
+    if 0 < metadata.waiting_count {
+        entry.condvar.notify_all();
+    }
+    metadata.waiting_count
 }
 
 /// Wakes at least one thread waiting on `ptr`.
-pub fn notify_one(ptr: *const ()) {
-    if !ptr.is_null() {
-        let entry = &TABLE[entry_for_ptr(ptr) as usize];
-        let metadata = *spin_lock(&entry.mutex);
-        if 0 < metadata.waiting_count {
-            if metadata.address.is_null() {
-                entry.condvar.notify_all();
-            } else if metadata.address == ptr {
-                entry.condvar.notify_one();
-            }
+pub fn notify_many(ptr: *const (), count: usize) -> usize {
+    if ptr.is_null() {
+        return 0;
+    }
+    let entry = &TABLE[entry_for_ptr(ptr) as usize];
+    let metadata = *spin_lock(&entry.mutex);
+    if metadata.waiting_count == 0 {
+        0
+    } else if metadata.waiting_count < count || metadata.address.is_null() {
+        entry.condvar.notify_all();
+        metadata.waiting_count
+    } else {
+        for _ in 0..count {
+            entry.condvar.notify_one();
         }
+        count
     }
 }
 
@@ -79,9 +102,9 @@ fn spin_lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 /// Gets the entry index to use for the given address.
 fn entry_for_ptr(ptr: *const ()) -> u8 {
     let x_64 = ptr as u64;
-    let x_32 = (x_64 >> 32) as u32 | x_64 as u32;
-    let x_16 = (x_32 >> 16) as u16 | x_32 as u16;
-    (x_16 >> 8) as u8 | x_16 as u8
+    let x_32 = (x_64 >> 32) as u32 ^ x_64 as u32;
+    let x_16 = (x_32 >> 16) as u16 ^ x_32 as u16;
+    (x_16 >> 8) as u8 ^ (x_16 >> 2) as u8
 }
 
 /// Holds metadata that gets written while locking.

@@ -1,10 +1,8 @@
-use std::{
-    hint::spin_loop,
-    sync::atomic::{AtomicU32, AtomicU64},
-    time::Duration,
-};
+use std::{hint::spin_loop, time::Duration};
 
-use crate::private::AtomicWaitImpl;
+use ecmascript_atomics::{Ordering, Racy};
+
+use crate::{FutexError, private::ECMAScriptAtomicWaitImpl};
 
 /// Whether this thread is allowed to block and use synchronization primitives.
 #[inline(always)]
@@ -17,117 +15,149 @@ fn can_block() -> bool {
 }
 
 #[cfg(not(nightly))]
-impl AtomicWaitImpl for AtomicU32 {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     type AtomicInner = u32;
 
-    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Option<Duration>) {
+    fn wait_timeout(
+        &self,
+        value: Self::AtomicInner,
+        timeout: Option<Duration>,
+    ) -> Result<(), FutexError> {
         if can_block() {
             crate::condvar_table::wait(
-                self as *const _ as *const _,
-                || self.load(std::sync::atomic::Ordering::Acquire) == value,
+                self.addr(),
+                || self.load(Ordering::SeqCst) == value,
                 timeout,
-            );
+            )
         } else {
             spin_loop();
+            Ok(())
         }
     }
 
-    fn notify_all(&self) {
-        crate::condvar_table::notify_all(self as *const _ as *const _);
+    fn notify_all(&self) -> usize {
+        crate::condvar_table::notify_all(self.addr())
     }
 
-    fn notify_one(&self) {
-        crate::condvar_table::notify_one(self as *const _ as *const _);
+    fn notify_many(&self, count: usize) -> usize {
+        crate::condvar_table::notify_many(self.addr(), count)
     }
 }
 
 #[cfg(not(nightly))]
-impl AtomicWaitImpl for AtomicU64 {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     type AtomicInner = u64;
 
-    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Option<Duration>) {
+    fn wait_timeout(
+        &self,
+        value: Self::AtomicInner,
+        timeout: Option<Duration>,
+    ) -> Result<(), FutexError> {
         if can_block() {
             crate::condvar_table::wait(
-                self as *const _ as *const _,
-                || self.load(std::sync::atomic::Ordering::Acquire) == value,
+                self.addr(),
+                || self.load(Ordering::SeqCst) == value,
                 timeout,
-            );
+            )
         } else {
             spin_loop();
+            Ok(())
         }
     }
 
-    fn notify_all(&self) {
-        crate::condvar_table::notify_all(self as *const _ as *const _);
+    fn notify_all(&self) -> usize {
+        crate::condvar_table::notify_all(self.addr())
     }
 
-    fn notify_one(&self) {
-        crate::condvar_table::notify_one(self as *const _ as *const _);
+    fn notify_many(&self, count: usize) -> usize {
+        crate::condvar_table::notify_many(self.addr(), count)
     }
 }
 
 #[cfg(nightly)]
-impl AtomicWaitImpl for AtomicU32 {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     type AtomicInner = u32;
 
-    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Option<Duration>) {
+    fn wait_timeout(
+        &self,
+        value: Self::AtomicInner,
+        timeout: Option<Duration>,
+    ) -> Result<(), FutexError> {
         unsafe {
             if can_block() {
-                std::arch::wasm32::memory_atomic_wait32(
-                    self as *const _ as *mut _,
+                let result = std::arch::wasm32::memory_atomic_wait32(
+                    self.addr(),
                     value as i32,
                     timeout
                         .map(|x| x.as_nanos().min(i64::MAX as u128) as i64)
                         .unwrap_or(i64::MAX),
                 );
+                if result == 0 {
+                    Ok(())
+                } else if result == 1 {
+                    Err(FutexError::NotEqual)
+                } else if result == 2 {
+                    Err(FutexError::Timeout)
+                } else {
+                    Err(FutexError::Unknown)
+                }
             } else {
                 spin_loop();
+                Ok(())
             }
         }
     }
 
-    fn notify_all(&self) {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self as *const _ as *mut _, u32::MAX);
-        };
+    fn notify_all(&self) -> usize {
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), u32::MAX) as usize }
     }
 
-    fn notify_one(&self) {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self as *const _ as *mut _, 1);
-        };
+    fn notify_many(&self, count: usize) -> usize {
+        let count = u32::try_from(count).unwrap_or(u32::MAX);
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), count) as usize }
     }
 }
 
 #[cfg(nightly)]
-impl AtomicWaitImpl for AtomicU64 {
+impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     type AtomicInner = u64;
 
-    fn wait_timeout(&self, value: Self::AtomicInner, timeout: Option<Duration>) {
+    fn wait_timeout(
+        &self,
+        value: Self::AtomicInner,
+        timeout: Option<Duration>,
+    ) -> Result<(), FutexError> {
         unsafe {
             if can_block() {
-                std::arch::wasm32::memory_atomic_wait64(
-                    self as *const _ as *mut _,
+                let result = std::arch::wasm32::memory_atomic_wait64(
+                    self.addr(),
                     value as i64,
                     timeout
                         .map(|x| x.as_nanos().min(i64::MAX as u128) as i64)
                         .unwrap_or(i64::MAX),
                 );
+                if result == 0 {
+                    Ok(())
+                } else if result == 1 {
+                    Err(FutexError::NotEqual)
+                } else if result == 2 {
+                    Err(FutexError::Timeout)
+                } else {
+                    Err(FutexError::Unknown)
+                }
             } else {
                 spin_loop();
+                Ok(())
             }
         }
     }
 
-    fn notify_all(&self) {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self as *const _ as *mut _, u32::MAX);
-        };
+    fn notify_all(&self) -> usize {
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), u32::MAX) as usize }
     }
 
-    fn notify_one(&self) {
-        unsafe {
-            std::arch::wasm32::memory_atomic_notify(self as *const _ as *mut _, 1);
-        };
+    fn notify_many(&self, count: usize) -> usize {
+        let count = u32::try_from(count).unwrap_or(u32::MAX);
+        unsafe { std::arch::wasm32::memory_atomic_notify(self.addr(), count) as usize }
     }
 }
