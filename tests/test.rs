@@ -49,10 +49,11 @@ fn wait_wake() {
 fn wait_timeout() {
     let a = RacyBox::new(0u32).unwrap();
     let a = a.as_slice().get(0).unwrap();
-    assert_eq!(
+    // Note: it's possible for us to receive a spurious wake.
+    assert!(matches!(
         a.wait_timeout(0, Duration::from_millis(1)),
-        Err(FutexError::Timeout)
-    );
+        Ok(()) | Err(FutexError::Timeout)
+    ));
 }
 
 #[test]
