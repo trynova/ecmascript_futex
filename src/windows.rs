@@ -18,8 +18,8 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
     ) -> Result<(), FutexError> {
         let result = unsafe {
             WaitOnAddress(
-                self.addr(),
-                &value as *const _ as *const _,
+                self.addr() as *const core::ffi::c_void,
+                &value as *const core::ffi::c_void,
                 size_of::<Self>(),
                 timeout
                     .map(|x| {
@@ -36,7 +36,7 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u32> {
             Ok(())
         } else {
             let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
-            if errno == ERROR_TIMEOUT {
+            if errno == ERROR_TIMEOUT as i32 {
                 Err(FutexError::Timeout)
             } else {
                 Err(FutexError::Unknown)
@@ -67,19 +67,19 @@ impl ECMAScriptAtomicWaitImpl for Racy<'_, u64> {
     ) -> Result<(), FutexError> {
         let result = unsafe {
             WaitOnAddress(
-                self.addr(),
-                &value as *const _ as *const _,
+                self.addr() as *const core::ffi::c_void,
+                &value as *const core::ffi::c_void,
                 size_of::<Self>(),
                 timeout
                     .map(|x| x.as_millis().min(u32::MAX as u128 - 1) as u32)
                     .unwrap_or(INFINITE),
             )
         };
-        if result {
+        if result == 1 {
             Ok(())
         } else {
             let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
-            if errno == ERROR_TIMEOUT {
+            if errno == ERROR_TIMEOUT as i32 {
                 Err(FutexError::Timeout)
             } else {
                 Err(FutexError::Unknown)
