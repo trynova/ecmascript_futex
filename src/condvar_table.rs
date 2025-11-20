@@ -75,7 +75,7 @@ pub fn notify_many(ptr: *const (), count: usize) -> usize {
     let entry = &TABLE[entry_for_ptr(ptr) as usize];
     let metadata = *spin_lock(&entry.mutex);
     if metadata.waiting_count == 0 {
-        return 0;
+        0
     } else if metadata.waiting_count < count || metadata.address.is_null() {
         entry.condvar.notify_all();
         metadata.waiting_count
